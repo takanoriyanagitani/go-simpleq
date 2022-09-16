@@ -44,6 +44,34 @@ func TestMem(t *testing.T) {
 						})
 					})
 					t.Run("key got", checker(nil == e, true))
+
+					t.Run("invalid key", func(t *testing.T) {
+						t.Run("missing group", func(t *testing.T) {
+							var ek Either[Key, error] = KeyNew(
+								OptionEmpty[GroupId](),
+								OptionNew(IdNew("")),
+							)
+							var e error = ek.TryForEach(func(key Key) error {
+								var eoi Either[Option[Item], error] = k.Get(context.Background(), key)
+								t.Run("invalid key", checker(eoi.IsNg(), true))
+								return nil
+							})
+							t.Run("key got", checker(nil == e, true))
+						})
+
+						t.Run("missing id", func(t *testing.T) {
+							var ek Either[Key, error] = KeyNew(
+								OptionNew(GroupIdNew("")),
+								OptionEmpty[Id](),
+							)
+							var e error = ek.TryForEach(func(key Key) error {
+								var eoi Either[Option[Item], error] = k.Get(context.Background(), key)
+								t.Run("invalid key", checker(eoi.IsNg(), true))
+								return nil
+							})
+							t.Run("key got", checker(nil == e, true))
+						})
+					})
 				})
 
 				t.Run("Set", func(t *testing.T) {
