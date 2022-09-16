@@ -61,6 +61,28 @@ func TestMem(t *testing.T) {
 				})
 
 				t.Run("Del", func(t *testing.T) {
+					var ek Either[Key, error] = dummyKeyGen(context.Background())
+					var e error = ek.TryForEach(func(key Key) error {
+						t.Run("missing key", func(t *testing.T) {
+							var e error = k.Del(context.Background(), key)
+							t.Run("key absent", checker(nil == e, true))
+						})
+
+						t.Run("key exists", func(t *testing.T) {
+							var dat Data = DataNew([]byte("hw"))
+							var itm Item = ItemNew(key, dat)
+							var e error = k.Set(context.Background(), itm)
+							t.Run("item tried to set", checker(nil == e, true))
+
+							var eoi Either[Option[Item], error] = k.Get(context.Background(), key)
+							e = eoi.TryForEach(func(oi Option[Item]) error {
+								return nil
+							})
+							t.Run("tried to get item", checker(nil == e, true))
+						})
+						return nil
+					})
+					t.Run("key got", checker(nil == e, true))
 				})
 			})
 			return nil
