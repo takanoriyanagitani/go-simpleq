@@ -25,10 +25,6 @@ func ItemNew(key Key, val Data) Item {
 
 func (i Item) Key() Key { return i.key }
 
-// Del deletes a queue by the key.
-// This should not make an error if the key does not exists.
-type Del func(ctx context.Context, key Key) error
-
 // GetOldest gets the oldest queue if it exists.
 type GetOldest func(ctx context.Context) Either[Option[Item], error]
 
