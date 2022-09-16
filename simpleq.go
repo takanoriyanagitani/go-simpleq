@@ -4,15 +4,18 @@ import (
 	"context"
 )
 
+// Data contains queue data.
 type Data struct {
 	raw []byte
 }
 
+// Item is a queue with its identifier(key) and its contents(data).
 type Item struct {
 	key Key
 	val Data
 }
 
+// ItemNew creates an item(queue).
 func ItemNew(key Key, val Data) Item {
 	return Item{
 		key,
@@ -22,32 +25,32 @@ func ItemNew(key Key, val Data) Item {
 
 func (i Item) Key() Key { return i.key }
 
-// Del deletes queue by key.
-// If key does not exists, this must return nil.
+// Del deletes a queue by the key.
+// This should not make an error if the key does not exists.
 type Del func(ctx context.Context, key Key) error
 
-// Get gets oldest queue if it exists.
+// Get gets the oldest queue if it exists.
 type Get func(ctx context.Context) Either[Option[Item], error]
 
-// Set sets queue.
+// Set sets an item(queue).
 type Set func(ctx context.Context, item Item) error
 
-// AddKey inserts key.
+// AddKey inserts a key.
 type AddKey func(ctx context.Context, key Key) error
 
-// DelKey removes key.
+// DelKey removes a key.
 type DelKey func(ctx context.Context, key Key) error
 
-// LstKey gets keys.
+// LstKey gets keys(first in first out order).
 type LstKey func(ctx context.Context) Either[Iter[Key], error]
 
-// Upsert inserts/overwrites queue.
+// Upsert inserts/overwrites an item(queue).
 type Upsert func(ctx context.Context, item Item) error
 
 // NonAtomicUpsertBuilderNew creates upsert.
-// 1. add key.
-// 2. add item(data).
-// Note: This may create a queue without data on power failure.
+// 1. Add a key.
+// 2. Add an item(queue).
+// Note: This may create a queue without data on power failure/crash.
 func NonAtomicUpsertBuilderNew(ak AddKey, s Set) Upsert {
 	return func(ctx context.Context, item Item) error {
 		var k Key = item.Key()
@@ -59,10 +62,10 @@ func NonAtomicUpsertBuilderNew(ak AddKey, s Set) Upsert {
 	}
 }
 
-// Push inserts queue.
-// Key will be auto generated.
+// Push inserts a queue.
 type Push func(ctx context.Context, data Data) error
 
+// PushBuilderNew creates Push.
 func PushBuilderNew(keygen KeyGen, upsert Upsert) Push {
 	return func(ctx context.Context, data Data) error {
 		var ek Either[Key, error] = keygen(ctx)
