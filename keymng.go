@@ -74,9 +74,9 @@ func KeyPackBuilderNew(ser KeySerialize) func(a KeyAppend) KeyPack {
 	}
 }
 
-func NonAtomicAddKeyBuilderNew(pack KeyPack) func(LstKey) func(KeyAppend) func(Set) func(Key) AddKey {
-	return func(lst LstKey) func(KeyAppend) func(Set) func(Key) AddKey {
-		return func(ap KeyAppend) func(Set) func(Key) AddKey {
+func NonAtomicAddKeyBuilderNew(pack KeyPack) func(KeyAppend) func(LstKey) func(Set) func(Key) AddKey {
+	return func(ap KeyAppend) func(LstKey) func(Set) func(Key) AddKey {
+		return func(lst LstKey) func(Set) func(Key) AddKey {
 			return func(set Set) func(Key) AddKey {
 				return func(keymng Key) AddKey {
 					return func(ctx context.Context, key Key) error {
