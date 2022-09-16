@@ -73,3 +73,31 @@ func KeyPackBuilderNew(ser KeySerialize) func(a KeyAppend) KeyPack {
 		}
 	}
 }
+
+func NonAtomicAddKeyBuilderNew(pack KeyPack) func(LstKey) func(KeyAppend) func(Set) func(Key) AddKey {
+	return func(lst LstKey) func(KeyAppend) func(Set) func(Key) AddKey {
+		return func(ap KeyAppend) func(Set) func(Key) AddKey {
+			return func(set Set) func(Key) AddKey {
+				return func(keymng Key) AddKey {
+					return func(ctx context.Context, key Key) error {
+						var eik Either[Iter[Key], error] = lst(ctx)
+						var epacked Either[[]byte, error] = EitherFlatMap(eik, func(ik Iter[Key]) Either[[]byte, error] {
+							return pack(ctx, ik)
+						})
+						var appended Either[[]byte, error] = EitherFlatMap(epacked, func(packed []byte) Either[[]byte, error] {
+							return ap(ctx, packed, key)
+						})
+						var edata Either[Data, error] = EitherMap(appended, DataNew)
+						var eitem Either[Item, error] = EitherMap(edata, func(d Data) Item {
+							return ItemNew(keymng, d)
+						})
+						var ee Either[error, error] = EitherMap(eitem, func(item Item) error {
+							return set(ctx, item)
+						})
+						return ee.UnwrapOrElse(Identity[error])
+					}
+				}
+			}
+		}
+	}
+}
