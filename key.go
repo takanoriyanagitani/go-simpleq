@@ -1,7 +1,6 @@
 package simpleq
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -45,18 +44,3 @@ func (k Key) WithId(id Id) Key {
 	k.id = OptionNew(id)
 	return k
 }
-
-// KeyGen generates a key.
-type KeyGen func(ctx context.Context) Either[Key, error]
-
-// AddKey inserts a key.
-type AddKey func(ctx context.Context, key Key) error
-
-// DelKey removes a key.
-type DelKey func(ctx context.Context, key Key) error
-
-// LstKey gets keys(first in first out order).
-type LstKey func(ctx context.Context) Either[Iter[Key], error]
-
-// GetOldestKey gets oldest key if exists.
-type GetOldestKey func(ctx context.Context) Either[Option[Key], error]
