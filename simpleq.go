@@ -29,20 +29,8 @@ func (i Item) Key() Key { return i.key }
 // This should not make an error if the key does not exists.
 type Del func(ctx context.Context, key Key) error
 
-// Get gets the oldest queue if it exists.
-type Get func(ctx context.Context) Either[Option[Item], error]
-
-// Set sets an item(queue).
-type Set func(ctx context.Context, item Item) error
-
-// AddKey inserts a key.
-type AddKey func(ctx context.Context, key Key) error
-
-// DelKey removes a key.
-type DelKey func(ctx context.Context, key Key) error
-
-// LstKey gets keys(first in first out order).
-type LstKey func(ctx context.Context) Either[Iter[Key], error]
+// GetOldest gets the oldest queue if it exists.
+type GetOldest func(ctx context.Context) Either[Option[Item], error]
 
 // Upsert inserts/overwrites an item(queue).
 type Upsert func(ctx context.Context, item Item) error
@@ -77,3 +65,6 @@ func PushBuilderNew(keygen KeyGen, upsert Upsert) Push {
 		})
 	}
 }
+
+// PushMany inserts many queues into the group.
+type PushMany func(ctx context.Context, group GroupId, data []Data) error
