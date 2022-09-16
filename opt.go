@@ -7,14 +7,16 @@ type optFilter[T any] func(flt func(T) bool) Option[T]
 type optForEach[T any] func(f func(T))
 type optUnwrapOr[T any] func(alt T) T
 type optMap[T any] func(f func(T) T) Option[T]
+type optUnwrapOrElse[T any] func(f func() T) T
 
 type Option[T any] struct {
-	value    optValue[T]
-	empty    optEmpty
-	okOrElse optOkOrElse[T]
-	filter   optFilter[T]
-	unwrapOr optUnwrapOr[T]
-	omap     optMap[T]
+	value        optValue[T]
+	empty        optEmpty
+	okOrElse     optOkOrElse[T]
+	filter       optFilter[T]
+	unwrapOr     optUnwrapOr[T]
+	unwrapOrElse optUnwrapOrElse[T]
+	omap         optMap[T]
 }
 
 func (o Option[T]) Value() T                                  { return o.value() }
@@ -23,15 +25,17 @@ func (o Option[T]) HasValue() bool                            { return !o.Empty(
 func (o Option[T]) OkOrElse(ng func() error) Either[T, error] { return o.okOrElse(ng) }
 func (o Option[T]) Filter(flt func(T) bool) Option[T]         { return o.filter(flt) }
 func (o Option[T]) UnwrapOr(t T) T                            { return o.unwrapOr(t) }
+func (o Option[T]) UnwrapOrElse(f func() T) T                 { return o.unwrapOrElse(f) }
 func (o Option[T]) Map(f func(T) T) Option[T]                 { return o.omap(f) }
 
 func OptionNew[T any](t T) Option[T] {
 	return Option[T]{
-		value:    func() T { return t },
-		empty:    func() bool { return false },
-		okOrElse: func(_ func() error) Either[T, error] { return EitherOk(t) },
-		unwrapOr: func(_ T) T { return t },
-		omap:     func(f func(T) T) Option[T] { return OptionNew(f(t)) },
+		value:        func() T { return t },
+		empty:        func() bool { return false },
+		okOrElse:     func(_ func() error) Either[T, error] { return EitherOk(t) },
+		unwrapOr:     func(_ T) T { return t },
+		unwrapOrElse: func(_ func() T) T { return t },
+		omap:         func(f func(T) T) Option[T] { return OptionNew(f(t)) },
 		filter: func(flt func(T) bool) Option[T] {
 			if flt(t) {
 				return OptionNew(t)
@@ -43,12 +47,13 @@ func OptionNew[T any](t T) Option[T] {
 
 func OptionEmpty[T any]() Option[T] {
 	return Option[T]{
-		value:    func() (t T) { return },
-		empty:    func() bool { return true },
-		okOrElse: func(ng func() error) Either[T, error] { return EitherNg[T](ng()) },
-		filter:   func(_ func(T) bool) Option[T] { return OptionEmpty[T]() },
-		unwrapOr: func(alt T) T { return alt },
-		omap:     func(_ func(T) T) Option[T] { return OptionEmpty[T]() },
+		value:        func() (t T) { return },
+		empty:        func() bool { return true },
+		okOrElse:     func(ng func() error) Either[T, error] { return EitherNg[T](ng()) },
+		filter:       func(_ func(T) bool) Option[T] { return OptionEmpty[T]() },
+		unwrapOr:     func(alt T) T { return alt },
+		unwrapOrElse: func(f func() T) T { return f() },
+		omap:         func(_ func(T) T) Option[T] { return OptionEmpty[T]() },
 	}
 }
 
@@ -75,4 +80,12 @@ func OptionFromArray[T any](a []T, ix int) Option[T] {
 		return OptionNew(t)
 	}
 	return OptionEmpty[T]()
+}
+
+func OptionFlatMap[T, U any](o Option[T], f func(T) Option[U]) Option[U] {
+	if o.HasValue() {
+		var t T = o.Value()
+		return f(t)
+	}
+	return OptionEmpty[U]()
 }
