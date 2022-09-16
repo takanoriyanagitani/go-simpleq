@@ -11,9 +11,13 @@ type KvStore struct {
 	del Del
 }
 
-func KvStoreNew(get Get, set Set, del Del) Either[KvStore, error] {
-	return EitherNg[KvStore](nil)
+func (k KvStore) Get(ctx context.Context, key Key) Either[Option[Item], error] {
+	return k.get(ctx, key)
 }
+
+func (k KvStore) Set(ctx context.Context, item Item) error { return k.set(ctx, item) }
+
+func (k KvStore) Del(ctx context.Context, key Key) error { return k.del(ctx, key) }
 
 type KvStoreBuilder struct {
 	Get
