@@ -17,6 +17,7 @@ type Option[T any] struct {
 	unwrapOr     optUnwrapOr[T]
 	unwrapOrElse optUnwrapOrElse[T]
 	omap         optMap[T]
+	forEach      optForEach[T]
 }
 
 func (o Option[T]) Value() T                                  { return o.value() }
@@ -27,6 +28,7 @@ func (o Option[T]) Filter(flt func(T) bool) Option[T]         { return o.filter(
 func (o Option[T]) UnwrapOr(t T) T                            { return o.unwrapOr(t) }
 func (o Option[T]) UnwrapOrElse(f func() T) T                 { return o.unwrapOrElse(f) }
 func (o Option[T]) Map(f func(T) T) Option[T]                 { return o.omap(f) }
+func (o Option[T]) ForEach(f func(T))                         { o.forEach(f) }
 
 func OptionNew[T any](t T) Option[T] {
 	return Option[T]{
@@ -36,6 +38,7 @@ func OptionNew[T any](t T) Option[T] {
 		unwrapOr:     func(_ T) T { return t },
 		unwrapOrElse: func(_ func() T) T { return t },
 		omap:         func(f func(T) T) Option[T] { return OptionNew(f(t)) },
+		forEach:      func(f func(T)) { f(t) },
 		filter: func(flt func(T) bool) Option[T] {
 			if flt(t) {
 				return OptionNew(t)
@@ -54,6 +57,7 @@ func OptionEmpty[T any]() Option[T] {
 		unwrapOr:     func(alt T) T { return alt },
 		unwrapOrElse: func(f func() T) T { return f() },
 		omap:         func(_ func(T) T) Option[T] { return OptionEmpty[T]() },
+		forEach:      func(_ func(T)) {},
 	}
 }
 
