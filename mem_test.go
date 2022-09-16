@@ -36,17 +36,28 @@ func TestMem(t *testing.T) {
 				t.Run("Get", func(t *testing.T) {
 					var ek Either[Key, error] = dummyKeyGen(context.Background())
 					var e error = ek.TryForEach(func(key Key) error {
-                        var eoi Either[Option[Item], error] = k.Get(context.Background(), key)
-                        t.Run("optional item got", checker(eoi.IsOk(), true))
+						var eoi Either[Option[Item], error] = k.Get(context.Background(), key)
+						t.Run("optional item got", checker(eoi.IsOk(), true))
 						return eoi.TryForEach(func(o Option[Item]) error {
-                            t.Run("item empty", checker(o.HasValue(), false))
-                            return nil
-                        })
+							t.Run("item empty", checker(o.HasValue(), false))
+							return nil
+						})
 					})
 					t.Run("key got", checker(nil == e, true))
 				})
 
 				t.Run("Set", func(t *testing.T) {
+					var ek Either[Key, error] = dummyKeyGen(context.Background())
+					var e error = ek.TryForEach(func(key Key) error {
+						t.Run("empty", func(t *testing.T) {
+							var dat Data = DataNew(nil)
+							var itm Item = ItemNew(key, dat)
+							var e error = k.Set(context.Background(), itm)
+							t.Run("item set", checker(nil == e, true))
+						})
+						return nil
+					})
+					t.Run("key got", checker(nil == e, true))
 				})
 
 				t.Run("Del", func(t *testing.T) {
