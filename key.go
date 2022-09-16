@@ -25,6 +25,9 @@ type Key struct {
 	id      Option[Id]
 }
 
+func (k Key) Group() Option[GroupId] { return k.groupId }
+func (k Key) Id() Option[Id]         { return k.id }
+
 // KeyNew creates new key.
 // GroupId or Id must have a value.
 func KeyNew(groupId Option[GroupId], id Option[Id]) Either[Key, error] {

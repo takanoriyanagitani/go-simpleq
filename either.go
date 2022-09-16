@@ -62,3 +62,11 @@ func EitherMap[T, U, E any](e Either[T, E], f func(T) U) Either[U, E] {
 	}
 	return EitherLeft[U, E](e.left.Value())
 }
+
+func EitherFlatMap[T, U, E any](e Either[T, E], f func(T) Either[U, E]) Either[U, E] {
+	if e.IsOk() {
+		var t T = e.right.Value()
+		return f(t)
+	}
+	return EitherLeft[U, E](e.left.Value())
+}
