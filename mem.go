@@ -10,7 +10,9 @@ func MapKvstoreNew() Either[KvStore, error] {
 
 	getOrNew := func(g GroupId) map[Id]Data {
 		return MapGet(m, g).UnwrapOrElse(func() map[Id]Data {
-			return make(map[Id]Data)
+			var sm map[Id]Data = make(map[Id]Data)
+			m[g] = sm
+			return sm
 		})
 	}
 

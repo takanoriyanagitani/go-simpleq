@@ -76,9 +76,20 @@ func TestMem(t *testing.T) {
 
 							var eoi Either[Option[Item], error] = k.Get(context.Background(), key)
 							e = eoi.TryForEach(func(oi Option[Item]) error {
+								t.Run("item got", checker(oi.HasValue(), true))
 								return nil
 							})
 							t.Run("tried to get item", checker(nil == e, true))
+
+							e = k.Del(context.Background(), key)
+							t.Run("tried to remove item", checker(nil == e, true))
+
+							eoi = k.Get(context.Background(), key)
+							e = eoi.TryForEach(func(oi Option[Item]) error {
+								t.Run("item missing", checker(oi.HasValue(), false))
+								return nil
+							})
+							t.Run("tried to get removed item", checker(nil == e, true))
 						})
 						return nil
 					})
