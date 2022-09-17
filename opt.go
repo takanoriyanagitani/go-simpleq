@@ -93,3 +93,17 @@ func OptionFlatMap[T, U any](o Option[T], f func(T) Option[U]) Option[U] {
 	}
 	return OptionEmpty[U]()
 }
+
+func OptionEq[T comparable](o Option[T], other T) bool {
+	return OptionMap(o, func(t T) bool {
+		return t == other
+	}).UnwrapOr(false)
+}
+
+func OptionEqOpt[T comparable](o Option[T], other Option[T]) bool {
+	return OptionMap(o, func(t T) bool {
+		return OptionEq(other, t)
+	}).UnwrapOrElse(func() bool {
+		return other.Empty()
+	})
+}

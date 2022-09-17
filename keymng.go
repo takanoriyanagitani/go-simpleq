@@ -136,6 +136,73 @@ type AddKeyBuilder func(Key) AddKey
 
 type LstKeyBuilder func(Key) LstKey
 
+type DelKeyBuilder func(Key) DelKey
+
+type GetKeyRemoved func(keys Iter[Key]) func(removeMe Key) Iter[Key]
+
+func GetKeyRemovedBuilderNew(iflt IterFilter[Key]) func(ser KeySerialize) GetKeyRemoved {
+	return func(ser KeySerialize) GetKeyRemoved {
+		return func(keys Iter[Key]) func(Key) Iter[Key] {
+			return func(removeMe Key) Iter[Key] {
+				return iflt(keys, func(key Key) bool {
+					var ksame bool = removeMe.Equal(key)
+					return !ksame
+				})
+			}
+		}
+	}
+}
+
+var GetKeyRemovedBuilderDefault func(ser KeySerialize) GetKeyRemoved = GetKeyRemovedBuilderNew(
+	IterFilterDefaultNew[Key](),
+)
+
+type SetKey func(ctx context.Context, keys Iter[Key]) error
+
+func SetKeyBuilderNew(pack KeyPack) func(Set) func(Key) SetKey {
+	return func(set Set) func(Key) SetKey {
+		return func(mng Key) SetKey {
+			return func(ctx context.Context, keys Iter[Key]) error {
+				var packed Either[[]byte, error] = pack(ctx, keys)
+				var edata Either[Data, error] = EitherMap(packed, DataNew)
+				var eitem Either[Item, error] = EitherMap(edata, func(d Data) Item {
+					return ItemNew(mng, d)
+				})
+				var ee Either[error, error] = EitherMap(eitem, func(i Item) error {
+					return set(ctx, i)
+				})
+				return ee.UnwrapOrElse(Identity[error])
+			}
+		}
+	}
+}
+
+type NonAtomicDelKeyBuilder func(LstKey) func(SetKey) DelKeyBuilder
+
+func NonAtomicDelKeyBuilderNew(gkr GetKeyRemoved) NonAtomicDelKeyBuilder {
+	return func(lk LstKey) func(SetKey) DelKeyBuilder {
+		return func(sk SetKey) DelKeyBuilder {
+			return func(mng Key) DelKey {
+				return func(ctx context.Context, key Key) error {
+					var ekeys Either[Iter[Key], error] = lk(ctx)
+					var removed Either[Iter[Key], error] = ekeys.Map(func(i Iter[Key]) Iter[Key] {
+						return gkr(i)(key)
+					})
+					var ee Either[error, error] = EitherMap(removed, func(i Iter[Key]) error {
+						return sk(ctx, i)
+					})
+					return ee.UnwrapOrElse(Identity[error])
+				}
+			}
+		}
+	}
+}
+
+var NonAtomicDelKeyBuilderNewDefault func(ser KeySerialize) NonAtomicDelKeyBuilder = Compose(
+	GetKeyRemovedBuilderDefault,
+	NonAtomicDelKeyBuilderNew,
+)
+
 func LstKeyBuilderNew(unpack KeyUnpack) func(Get) LstKeyBuilder {
 	return func(get Get) LstKeyBuilder {
 		return func(mng Key) LstKey {

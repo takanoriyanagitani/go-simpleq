@@ -30,3 +30,11 @@ func MapGet[T comparable, U any](m map[T]U, t T) Option[U] {
 	}
 	return OptionEmpty[U]()
 }
+
+func Curry[T, U, V any](f func(T, U) V) func(T) func(U) V {
+	return func(t T) func(U) V {
+		return func(u U) V {
+			return f(t, u)
+		}
+	}
+}

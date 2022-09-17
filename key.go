@@ -27,6 +27,12 @@ type Key struct {
 func (k Key) Group() Option[GroupId] { return k.groupId }
 func (k Key) Id() Option[Id]         { return k.id }
 
+func (k Key) Equal(other Key) bool {
+	var gsame bool = OptionEqOpt(k.Group(), other.Group())
+	var isame bool = OptionEqOpt(k.Id(), other.Id())
+	return gsame && isame
+}
+
 // KeyNew creates new key.
 // GroupId or Id must have a value.
 func KeyNew(groupId Option[GroupId], id Option[Id]) Either[Key, error] {

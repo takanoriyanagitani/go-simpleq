@@ -20,6 +20,13 @@ func (i Iter[T]) Map(f func(T) T) Iter[T] {
 	}
 }
 
+func (i Iter[T]) ToArray() []T {
+	reducer := func(state []T, item T) []T {
+		return append(state, item)
+	}
+	return IterReduce(i, nil, reducer)
+}
+
 func IterReduce[T, U any](i Iter[T], init U, reducer func(U, T) U) U {
 	state := init
 	for o := i(); o.HasValue(); o = i() {
@@ -54,5 +61,28 @@ func IterFromArray[T any](a []T) Iter[T] {
 func IterEmpty[T any]() Iter[T] {
 	return func() Option[T] {
 		return OptionEmpty[T]()
+	}
+}
+
+func IterReduceFilter[T, U any](i Iter[T], init U, filter func(T) bool, reducer func(U, T) U) U {
+	var state U = init
+	for o := i(); o.HasValue(); o = i() {
+		var t T = o.Value()
+		if filter(t) {
+			state = reducer(state, t)
+		}
+	}
+	return state
+}
+
+type IterFilter[T any] func(i Iter[T], f func(T) bool) Iter[T]
+
+func IterFilterDefaultNew[T any]() IterFilter[T] {
+	return func(i Iter[T], filter func(T) bool) Iter[T] {
+		reducer := func(state []T, item T) []T {
+			return append(state, item)
+		}
+		var s []T = IterReduceFilter(i, nil, filter, reducer)
+		return IterFromArray(s)
 	}
 }
