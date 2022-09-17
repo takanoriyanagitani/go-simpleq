@@ -74,28 +74,33 @@ func KeyPackBuilderNew(ser KeySerialize) func(a KeyAppend) KeyPack {
 	}
 }
 
-type GetKeysPacked func(context.Context) Either[[]byte, error]
-
-func GetKeysPackedBuilderNew(kp KeyPack) func(LstKey) GetKeysPacked {
-	return func(lk LstKey) GetKeysPacked {
-		return func(ctx context.Context) Either[[]byte, error] {
-			var eik Either[Iter[Key], error] = lk(ctx)
-			return EitherFlatMap(eik, func(ik Iter[Key]) Either[[]byte, error] {
-				return kp(ctx, ik)
-			})
-		}
-	}
+type KeyBond struct {
+	pack KeyPack
+	join KeyAppend
 }
 
-func NonAtomicAddKeyBuilderNew(gkp GetKeysPacked) func(KeyAppend) func(Set) func(Key) AddKey {
-	return func(ka KeyAppend) func(Set) func(Key) AddKey {
-		return func(s Set) func(Key) AddKey {
+func (k KeyBond) GetPackedKeys(ctx context.Context, lk LstKey) Either[[]byte, error] {
+	var eik Either[Iter[Key], error] = lk(ctx)
+	return EitherFlatMap(eik, func(ik Iter[Key]) Either[[]byte, error] {
+		return k.pack(ctx, ik)
+	})
+}
+
+func (k KeyBond) AppendKey(ctx context.Context, packed []byte, key Key) Either[[]byte, error] {
+	return k.join(ctx, packed, key)
+}
+
+type AddKeyBuilder func(Key) AddKey
+
+func NonAtomicAddKeyBuilderNew(kb KeyBond) func(LstKey) func(Set) AddKeyBuilder {
+	return func(lk LstKey) func(Set) AddKeyBuilder {
+		return func(set Set) AddKeyBuilder {
 			return func(mng Key) AddKey {
 				return func(ctx context.Context, key Key) error {
-					var epacked Either[[]byte, error] = gkp(ctx)
+					var epacked Either[[]byte, error] = kb.GetPackedKeys(ctx, lk)
 					var appended Either[[]byte, error] = epacked.FlatMap(
 						func(packed []byte) Either[[]byte, error] {
-							return ka(ctx, packed, key)
+							return kb.AppendKey(ctx, packed, key)
 						},
 					)
 					var edata Either[Data, error] = EitherMap(appended, DataNew)
@@ -103,7 +108,7 @@ func NonAtomicAddKeyBuilderNew(gkp GetKeysPacked) func(KeyAppend) func(Set) func
 						return ItemNew(mng, d)
 					})
 					var ee Either[error, error] = EitherMap(eitem, func(i Item) error {
-						return s(ctx, i)
+						return set(ctx, i)
 					})
 					return ee.UnwrapOrElse(Identity[error])
 				}
