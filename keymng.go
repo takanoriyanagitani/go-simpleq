@@ -27,28 +27,31 @@ type KeyManager struct {
 }
 
 type KeyManagerBuilder struct {
-	DelKey
-	LstKey
-	Set
 	KeyBond
+	KeyUnpack
+	Set
+	Get
+	DelKey
 	Key
 }
 
 func (b KeyManagerBuilder) Build() Either[KeyManager, error] {
 	var ing Iter[bool] = IterFromArray([]bool{
 		nil == b.DelKey,
-		nil == b.LstKey,
 		nil == b.Set,
+		nil == b.KeyUnpack,
+		nil == b.Get,
 	})
 	var iok = ing.Map(func(ng bool) (ok bool) { return !ng })
 	var ok bool = iok.Reduce(true, func(state bool, b bool) bool {
 		return state && b
 	})
 	var o Option[KeyManager] = OptionFromBool(ok, func() KeyManager {
+		var lk LstKey = LstKeyBuilderNew(b.KeyUnpack)(b.Get)(b.Key)
 		return KeyManager{
-			add: NonAtomicAddKeyBuilderNew(b.KeyBond)(b.LstKey)(b.Set)(b.Key),
+			add: NonAtomicAddKeyBuilderNew(b.KeyBond)(lk)(b.Set)(b.Key),
 			del: b.DelKey,
-			lst: b.LstKey,
+			lst: lk,
 		}
 	})
 	return o.OkOrElse(func() error {
