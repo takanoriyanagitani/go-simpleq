@@ -62,6 +62,27 @@ type KeyDeserialize func(ctx context.Context, dat []byte) Either[Key, error]
 type KeyAppend func(ctx context.Context, packed []byte, key Key) Either[[]byte, error]
 
 type KeyPack func(ctx context.Context, keys Iter[Key]) Either[[]byte, error]
+type KeyUnpack func(ctx context.Context, packed []byte) Either[Iter[Key], error]
+
+func (u KeyUnpack) UnpackData(ctx context.Context, packed Data) Either[Iter[Key], error] {
+	return u(ctx, packed.Val())
+}
+
+func (u KeyUnpack) UnpackItem(ctx context.Context, packed Item) Either[Iter[Key], error] {
+	return u.UnpackData(ctx, packed.Val())
+}
+
+func (u KeyUnpack) UnpackOpt(ctx context.Context, packed Option[Item]) Either[Iter[Key], error] {
+	var oeik Option[Either[Iter[Key], error]] = OptionMap(
+		packed,
+		func(i Item) Either[Iter[Key], error] {
+			return u.UnpackItem(ctx, i)
+		},
+	)
+	return oeik.UnwrapOrElse(func() Either[Iter[Key], error] {
+		return EitherOk(IterEmpty[Key]())
+	})
+}
 
 func KeyPackBuilderNew(ser KeySerialize) func(a KeyAppend) KeyPack {
 	return func(a KeyAppend) KeyPack {
@@ -109,6 +130,21 @@ func (k KeyBond) AppendKey(ctx context.Context, packed []byte, key Key) Either[[
 }
 
 type AddKeyBuilder func(Key) AddKey
+
+type LstKeyBuilder func(Key) LstKey
+
+func LstKeyBuilderNew(unpack KeyUnpack) func(Get) LstKeyBuilder {
+	return func(get Get) LstKeyBuilder {
+		return func(mng Key) LstKey {
+			return func(ctx context.Context) Either[Iter[Key], error] {
+				var eoi Either[Option[Item], error] = get(ctx, mng)
+				return EitherFlatMap(eoi, func(oi Option[Item]) Either[Iter[Key], error] {
+					return unpack.UnpackOpt(ctx, oi)
+				})
+			}
+		}
+	}
+}
 
 func NonAtomicAddKeyBuilderNew(kb KeyBond) func(LstKey) func(Set) AddKeyBuilder {
 	return func(lk LstKey) func(Set) AddKeyBuilder {

@@ -50,3 +50,9 @@ func IterFromArray[T any](a []T) Iter[T] {
 		return o
 	}
 }
+
+func IterEmpty[T any]() Iter[T] {
+	return func() Option[T] {
+		return OptionEmpty[T]()
+	}
+}

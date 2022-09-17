@@ -11,6 +11,8 @@ type Data struct {
 
 func DataNew(raw []byte) Data { return Data{raw} }
 
+func (d Data) Val() []byte { return d.raw }
+
 // Item is a queue with its identifier(key) and its contents(data).
 type Item struct {
 	key Key
