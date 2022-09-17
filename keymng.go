@@ -79,6 +79,22 @@ type KeyBond struct {
 	join KeyAppend
 }
 
+type KeyBondBuilder struct {
+	KeySerialize
+	KeyAppend
+}
+
+func (b KeyBondBuilder) Build() Either[KeyBond, error] {
+	var valid bool = nil != b.KeySerialize && nil != b.KeyAppend
+	var okb Option[KeyBond] = OptionFromBool(valid, func() KeyBond {
+		return KeyBond{
+			pack: KeyPackBuilderNew(b.KeySerialize)(b.KeyAppend),
+			join: b.KeyAppend,
+		}
+	})
+	return okb.OkOrElse(func() error { return fmt.Errorf("Invalid builder") })
+}
+
 func (k KeyBond) GetPackedKeys(ctx context.Context, lk LstKey) Either[[]byte, error] {
 	var eik Either[Iter[Key], error] = lk(ctx)
 	return EitherFlatMap(eik, func(ik Iter[Key]) Either[[]byte, error] {
