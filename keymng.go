@@ -8,10 +8,10 @@ import (
 // KeyGen generates a key.
 type KeyGen func(ctx context.Context) Either[Key, error]
 
-// AddKey inserts a key.
+// AddKey inserts a key to keys list.
 type AddKey func(ctx context.Context, key Key) error
 
-// DelKey removes a key.
+// DelKey removes a key from keys list.
 type DelKey func(ctx context.Context, key Key) error
 
 // LstKey gets keys(first in first out order).
