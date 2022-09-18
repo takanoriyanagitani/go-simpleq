@@ -26,20 +26,20 @@ type KeyManager struct {
 	lst LstKey
 }
 
-type KeyManagerBuilder struct {
-	KeyBond
+type NonAtomicKeyManagerBuilder struct {
 	KeyUnpack
+	KeySerialize
+	KeyBond
 	Set
 	Get
-	DelKey
 	Key
 }
 
-func (b KeyManagerBuilder) Build() Either[KeyManager, error] {
+func (b NonAtomicKeyManagerBuilder) Build() Either[KeyManager, error] {
 	var ing Iter[bool] = IterFromArray([]bool{
-		nil == b.DelKey,
-		nil == b.Set,
 		nil == b.KeyUnpack,
+		nil == b.KeySerialize,
+		nil == b.Set,
 		nil == b.Get,
 	})
 	var iok = ing.Map(func(ng bool) (ok bool) { return !ng })
@@ -48,9 +48,12 @@ func (b KeyManagerBuilder) Build() Either[KeyManager, error] {
 	})
 	var o Option[KeyManager] = OptionFromBool(ok, func() KeyManager {
 		var lk LstKey = LstKeyBuilderNew(b.KeyUnpack)(b.Get)(b.Key)
+		var nadkb NonAtomicDelKeyBuilder = NonAtomicDelKeyBuilderNewDefault(b.KeySerialize)
+		var sk SetKey = SetKeyBuilderNew(b.KeyBond.pack)(b.Set)(b.Key)
+		var dkb DelKeyBuilder = nadkb(lk)(sk)
 		return KeyManager{
 			add: NonAtomicAddKeyBuilderNew(b.KeyBond)(lk)(b.Set)(b.Key),
-			del: b.DelKey,
+			del: dkb(b.Key),
 			lst: lk,
 		}
 	})
